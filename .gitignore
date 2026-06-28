@@ -1,0 +1,11 @@
+# .gitignore for F1 Live Race Insight Architecture
+__pycache__/
+*.pyc
+*.pyo
+.env
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.DS_Store
