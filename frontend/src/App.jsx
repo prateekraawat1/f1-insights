@@ -118,24 +118,50 @@ function BottomPanel({ track }) {
 
         {activeTab === 'standings' && standings && standings.standings && (
           <div className="standings-view">
-            <h3 className="tab-title">Constructor Championship ({new Date().getFullYear()})</h3>
-            <table>
-              <thead>
-                <tr><th>Pos</th><th>Team</th><th>Points</th></tr>
-              </thead>
-              <tbody>
-                {standings.standings.map((s, i) => (
-                  <tr key={i}>
-                    <td>{s.position}</td>
-                    <td className="team-col">
-                      <span className="team-color-indicator" style={{ backgroundColor: `#${s.color}` }}></span>
-                      {s.team}
-                    </td>
-                    <td><strong style={{color: 'var(--text-primary)'}}>{s.points} PTS</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{display: 'flex', gap: '32px', flexWrap: 'wrap'}}>
+              <div style={{flex: '1', minWidth: '300px'}}>
+                <h3 className="tab-title">Drivers' Championship ({new Date().getFullYear()})</h3>
+                <table>
+                  <thead>
+                    <tr><th>Pos</th><th>Driver</th><th>Team</th><th>Points</th></tr>
+                  </thead>
+                  <tbody>
+                    {standings.drivers && standings.drivers.map((d, i) => (
+                      <tr key={i}>
+                        <td>{d.position}</td>
+                        <td style={{fontWeight: '700'}}>{d.driver}</td>
+                        <td className="team-col">
+                          <span className="team-color-indicator" style={{ backgroundColor: `#${d.color}` }}></span>
+                          {d.team}
+                        </td>
+                        <td><strong style={{color: 'var(--text-primary)'}}>{d.points} PTS</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{flex: '1', minWidth: '300px'}}>
+                <h3 className="tab-title">Constructor Championship ({new Date().getFullYear()})</h3>
+                <table>
+                  <thead>
+                    <tr><th>Pos</th><th>Team</th><th>Points</th></tr>
+                  </thead>
+                  <tbody>
+                    {standings.standings.map((s, i) => (
+                      <tr key={i}>
+                        <td>{s.position}</td>
+                        <td className="team-col">
+                          <span className="team-color-indicator" style={{ backgroundColor: `#${s.color}` }}></span>
+                          {s.team}
+                        </td>
+                        <td><strong style={{color: 'var(--text-primary)'}}>{s.points} PTS</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

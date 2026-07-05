@@ -405,12 +405,12 @@ def get_past_results(year: int, track: str):
                 p_map = {1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1}
                 pts = p_map.get(int(pos), 0) if pos else 0
                 
-            # Mock season points (since Ergast is deprecated, we add a mock overall points score)
+            # Mock season points based on 2026 data
             mock_season_pts = {
-                "VER": 277, "NOR": 199, "LEC": 177, "PIA": 167, "SAI": 162, 
-                "HAM": 150, "PER": 131, "RUS": 116, "ALO": 49, "STR": 24,
-                "HUL": 22, "TSU": 22, "RIC": 12, "BEA": 6, "GAS": 6,
-                "MAG": 5, "OCO": 5, "ALB": 4, "ZHO": 0, "SAR": 0, "BOT": 0
+                "ANT": 179, "RUS": 136, "HAM": 132, "NOR": 85, "LEC": 83,
+                "PIA": 82, "VER": 76, "HAD": 42, "GAS": 41, "LAW": 31,
+                "BEA": 18, "COL": 16, "LIN": 14, "SAI": 6, 
+                "ALO": 0, "STR": 0, "HUL": 0, "ALB": 0, "OCO": 0
             }
             abbrev = safe_val(row.get("Abbreviation"), "")
             overall_pts = mock_season_pts.get(abbrev, 0)
@@ -421,6 +421,8 @@ def get_past_results(year: int, track: str):
             elif abbrev == "SAI": team = "Williams"
             elif abbrev == "HUL": team = "Kick Sauber"
             elif abbrev == "OCO": team = "Haas F1 Team"
+            elif abbrev == "BEA": team = "Haas F1 Team"
+            elif abbrev == "LAW": team = "Racing Bulls"
                 
             res_list.append({
                 "Position": int(pos),
@@ -465,16 +467,32 @@ def get_standings():
     """Mock Constructors Championship Standings."""
     return {
         "standings": [
-            {"position": 1, "team": "Red Bull Racing", "points": 350, "color": "3671C6"},
-            {"position": 2, "team": "Ferrari", "points": 298, "color": "E80020"},
-            {"position": 3, "team": "McLaren", "points": 285, "color": "FF8000"},
-            {"position": 4, "team": "Mercedes", "points": 245, "color": "27F4D2"},
-            {"position": 5, "team": "Aston Martin", "points": 120, "color": "229971"},
-            {"position": 6, "team": "RB", "points": 45, "color": "6692FF"},
-            {"position": 7, "team": "Haas F1 Team", "points": 34, "color": "B6BABD"},
-            {"position": 8, "team": "Alpine", "points": 28, "color": "FF87BC"},
-            {"position": 9, "team": "Williams", "points": 15, "color": "64C4FF"},
+            {"position": 1, "team": "Mercedes", "points": 315, "color": "27F4D2"},
+            {"position": 2, "team": "Ferrari", "points": 215, "color": "E80020"},
+            {"position": 3, "team": "McLaren", "points": 167, "color": "FF8000"},
+            {"position": 4, "team": "Red Bull Racing", "points": 118, "color": "3671C6"},
+            {"position": 5, "team": "Alpine", "points": 57, "color": "FF87BC"},
+            {"position": 6, "team": "Racing Bulls", "points": 45, "color": "6692FF"},
+            {"position": 7, "team": "Haas F1 Team", "points": 18, "color": "B6BABD"},
+            {"position": 8, "team": "Williams", "points": 6, "color": "64C4FF"},
+            {"position": 9, "team": "Aston Martin", "points": 0, "color": "229971"},
             {"position": 10, "team": "Kick Sauber", "points": 0, "color": "52E252"}
+        ],
+        "drivers": [
+            {"position": 1, "driver": "Kimi Antonelli", "team": "Mercedes", "points": 179, "color": "27F4D2"},
+            {"position": 2, "driver": "George Russell", "team": "Mercedes", "points": 136, "color": "27F4D2"},
+            {"position": 3, "driver": "Lewis Hamilton", "team": "Ferrari", "points": 132, "color": "E80020"},
+            {"position": 4, "driver": "Lando Norris", "team": "McLaren", "points": 85, "color": "FF8000"},
+            {"position": 5, "driver": "Charles Leclerc", "team": "Ferrari", "points": 83, "color": "E80020"},
+            {"position": 6, "driver": "Oscar Piastri", "team": "McLaren", "points": 82, "color": "FF8000"},
+            {"position": 7, "driver": "Max Verstappen", "team": "Red Bull Racing", "points": 76, "color": "3671C6"},
+            {"position": 8, "driver": "Isack Hadjar", "team": "Red Bull Racing", "points": 42, "color": "3671C6"},
+            {"position": 9, "driver": "Pierre Gasly", "team": "Alpine", "points": 41, "color": "FF87BC"},
+            {"position": 10, "driver": "Liam Lawson", "team": "Racing Bulls", "points": 31, "color": "6692FF"},
+            {"position": 11, "driver": "Oliver Bearman", "team": "Haas F1 Team", "points": 18, "color": "B6BABD"},
+            {"position": 12, "driver": "Franco Colapinto", "team": "Alpine", "points": 16, "color": "FF87BC"},
+            {"position": 13, "driver": "Arvid Lindblad", "team": "Racing Bulls", "points": 14, "color": "6692FF"},
+            {"position": 14, "driver": "Carlos Sainz", "team": "Williams", "points": 6, "color": "64C4FF"}
         ]
     }
 
