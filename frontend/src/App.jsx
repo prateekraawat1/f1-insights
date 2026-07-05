@@ -33,7 +33,7 @@ function BottomPanel({ track }) {
     }
     if (activeTab === 'results' && !results && track && track !== 'Unknown') {
       setLoading(true);
-      const year = new Date().getFullYear(); // Use current year for past results if possible, otherwise fastf1 will handle it or fallback
+      const year = 2024; // Hardcode to 2024 because FastF1 doesn't have current future year data yet
       fetch(`http://localhost:8000/api/results/${year}/${track}`)
         .then(r => r.json())
         .then(data => { setResults(data); setLoading(false); })
