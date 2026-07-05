@@ -23,30 +23,45 @@ function BottomPanel({ track }) {
   const [schedule, setSchedule] = useState(null);
   const [standings, setStandings] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fallbackTrack, setFallbackTrack] = useState(null);
+
+  // Derive the active track to show data for
+  const resolvedTrack = (!track || track === 'Unknown') ? (fallbackTrack || 'Austria') : track;
+
+  // Fetch schedule immediately to determine the fallback track (last completed race)
+  useEffect(() => {
+    if (!schedule) {
+      fetch(`http://localhost:8000/api/schedule`)
+        .then(r => r.json())
+        .then(data => { 
+          setSchedule(data);
+          if (data.last_completed_track) {
+            setFallbackTrack(data.last_completed_track);
+          }
+        })
+        .catch(console.error);
+    }
+  }, []);
 
   useEffect(() => {
-    if (activeTab === 'analytics' && !analytics && track && track !== 'Unknown') {
+    if (activeTab === 'analytics' && !analytics && resolvedTrack) {
       setLoading(true);
-      fetch(`http://localhost:8000/api/analytics?track=${track}`)
+      fetch(`http://localhost:8000/api/analytics?track=${resolvedTrack}`)
         .then(r => r.json())
         .then(data => { setAnalytics(data); setLoading(false); })
         .catch(() => setLoading(false));
     }
-    if (activeTab === 'results' && !results && track && track !== 'Unknown') {
+    if (activeTab === 'results' && !results && resolvedTrack) {
       setLoading(true);
       const year = 2024; // Hardcode to 2024 because FastF1 doesn't have current future year data yet
-      fetch(`http://localhost:8000/api/results/${year}/${track}`)
+      fetch(`http://localhost:8000/api/results/${year}/${resolvedTrack}`)
         .then(r => r.json())
         .then(data => { setResults(data); setLoading(false); })
         .catch(() => setLoading(false));
     }
-    if (activeTab === 'schedule' && !schedule) {
-      setLoading(true);
-      fetch(`http://localhost:8000/api/schedule`)
-        .then(r => r.json())
-        .then(data => { setSchedule(data); setLoading(false); })
-        .catch(() => setLoading(false));
-    }
+  }, [activeTab, resolvedTrack]);
+
+  useEffect(() => {
     if (activeTab === 'standings' && !standings) {
       setLoading(true);
       fetch(`http://localhost:8000/api/standings`)
@@ -95,7 +110,7 @@ function BottomPanel({ track }) {
 
         {activeTab === 'results' && results && results.results && (
           <div className="results-view">
-            <h3 className="tab-title">Past Race Results - {track} ({new Date().getFullYear()})</h3>
+            <h3 className="tab-title">Past Race Results - {resolvedTrack} ({new Date().getFullYear()})</h3>
             <table>
               <thead>
                 <tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th><th>Race Pts</th><th>Overall Pts</th></tr>
@@ -365,7 +380,7 @@ export default function App() {
           <p>Waiting for the next Formula 1 session to begin...</p>
         </div>
       )}
-      <BottomPanel track={session.track === 'Unknown' ? 'Austria' : session.track} />
+      <BottomPanel track={session.track} />
     </div>
   );
 }

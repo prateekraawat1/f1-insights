@@ -446,18 +446,35 @@ def get_schedule():
         current_year = 2024 # Hardcode 2024 since FastF1 might not have future years
         schedule = fastf1.get_event_schedule(current_year)
         
-        # Filter for upcoming races or just return all
+        from datetime import datetime
+        current_time = datetime.now()
+        # Shift current time to 2024 to match the FastF1 calendar dates
+        try:
+            shifted_time = current_time.replace(year=2024)
+        except ValueError:
+            # Handle leap year Feb 29
+            shifted_time = current_time.replace(year=2024, day=28)
+            
+        last_track = "Bahrain"
+        
         events = []
         for _, row in schedule.iterrows():
             if row.get("EventFormat") != "testing":
+                event_date = pd.to_datetime(row.get("EventDate"))
+                country = row.get("Country")
+                
+                # If the event date is in the past (relative to our shifted current time), it's completed
+                if event_date.timestamp() < shifted_time.timestamp():
+                    last_track = country
+                    
                 events.append({
                     "RoundNumber": row.get("RoundNumber"),
-                    "Country": row.get("Country"),
+                    "Country": country,
                     "Location": row.get("Location"),
                     "EventName": row.get("EventName"),
                     "EventDate": str(row.get("EventDate"))
                 })
-        return {"year": current_year, "schedule": events}
+        return {"year": current_year, "schedule": events, "last_completed_track": last_track}
     except Exception as e:
         logger.error(f"Error fetching schedule: {e}")
         return {"error": str(e)}
