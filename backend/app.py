@@ -416,14 +416,7 @@ def get_past_results(year: int, track: str):
             overall_pts = mock_season_pts.get(abbrev, 0)
             
             team = safe_val(row.get("TeamName"), "")
-            # 2025/2026 Driver Move Overrides
-            if abbrev == "HAM": team = "Ferrari"
-            elif abbrev == "SAI": team = "Williams"
-            elif abbrev == "HUL": team = "Kick Sauber"
-            elif abbrev == "OCO": team = "Haas F1 Team"
-            elif abbrev == "BEA": team = "Haas F1 Team"
-            elif abbrev == "LAW": team = "Racing Bulls"
-                
+            
             res_list.append({
                 "Position": int(pos),
                 "DriverNumber": safe_val(row.get("DriverNumber"), ""),
@@ -443,18 +436,11 @@ def get_past_results(year: int, track: str):
 def get_schedule():
     """Fetch the F1 calendar for the current year."""
     try:
-        current_year = 2024 # Hardcode 2024 since FastF1 might not have future years
+        from datetime import datetime
+        current_year = datetime.now().year
         schedule = fastf1.get_event_schedule(current_year)
         
-        from datetime import datetime
         current_time = datetime.now()
-        # Shift current time to 2024 to match the FastF1 calendar dates
-        try:
-            shifted_time = current_time.replace(year=2024)
-        except ValueError:
-            # Handle leap year Feb 29
-            shifted_time = current_time.replace(year=2024, day=28)
-            
         last_track = "Bahrain"
         
         events = []
@@ -463,8 +449,8 @@ def get_schedule():
                 event_date = pd.to_datetime(row.get("EventDate"))
                 country = row.get("Country")
                 
-                # If the event date is in the past (relative to our shifted current time), it's completed
-                if event_date.timestamp() < shifted_time.timestamp():
+                # If the event date is in the past, it's completed
+                if event_date.timestamp() < current_time.timestamp():
                     last_track = country
                     
                 events.append({
