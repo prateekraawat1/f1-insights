@@ -238,7 +238,19 @@ async def run_telemetry_loop(
     """
     logger.info("🏁 Telemetry simulator started — track: %s", TRACK_NAME)
     while True:
-        snapshot = simulator.tick()
+        raw_snapshot = simulator.tick()
         if broadcast_callback:
-            await broadcast_callback(snapshot)
+            # Transform to the format expected by the frontend (previously used by OpenF1Client)
+            formatted_snapshot = {
+                "grid": {
+                    "VER": raw_snapshot["VER"],
+                    "HAM": raw_snapshot["HAM"],
+                },
+                "meta": raw_snapshot["meta"]
+            }
+            await broadcast_callback({
+                "type": "TELEMETRY",
+                "snapshot": formatted_snapshot,
+                "ts": time.time()
+            })
         await asyncio.sleep(TELEMETRY_POLL_INTERVAL)
