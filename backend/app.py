@@ -390,15 +390,14 @@ def get_past_results(year: int, track: str):
         import pandas as pd
         # Convert to dictionary safely
         res_list = []
-        for _, row in results.iterrows():
+        for i, (_, row) in enumerate(results.iterrows()):
             def safe_val(v, default):
                 return default if pd.isna(v) else v
             
-            # Ergast fallback: Use ClassifiedPosition if Position is missing
+            # Ergast fallback: Use loop index for Position if missing (df is sorted)
             pos = row.get("Position")
             if pd.isna(pos):
-                c_pos = row.get("ClassifiedPosition")
-                pos = int(c_pos) if str(c_pos).isdigit() else 0
+                pos = i + 1
             
             # Ergast fallback: Assign standard points if missing
             pts = row.get("Points")
@@ -448,16 +447,16 @@ def get_standings():
     """Mock Constructors Championship Standings."""
     return {
         "standings": [
-            {"position": 1, "team": "Red Bull Racing", "points": 350},
-            {"position": 2, "team": "Ferrari", "points": 298},
-            {"position": 3, "team": "McLaren", "points": 285},
-            {"position": 4, "team": "Mercedes", "points": 245},
-            {"position": 5, "team": "Aston Martin", "points": 120},
-            {"position": 6, "team": "RB", "points": 45},
-            {"position": 7, "team": "Haas F1 Team", "points": 34},
-            {"position": 8, "team": "Alpine", "points": 28},
-            {"position": 9, "team": "Williams", "points": 15},
-            {"position": 10, "team": "Kick Sauber", "points": 0}
+            {"position": 1, "team": "Red Bull Racing", "points": 350, "color": "3671C6"},
+            {"position": 2, "team": "Ferrari", "points": 298, "color": "E80020"},
+            {"position": 3, "team": "McLaren", "points": 285, "color": "FF8000"},
+            {"position": 4, "team": "Mercedes", "points": 245, "color": "27F4D2"},
+            {"position": 5, "team": "Aston Martin", "points": 120, "color": "229971"},
+            {"position": 6, "team": "RB", "points": 45, "color": "6692FF"},
+            {"position": 7, "team": "Haas F1 Team", "points": 34, "color": "B6BABD"},
+            {"position": 8, "team": "Alpine", "points": 28, "color": "FF87BC"},
+            {"position": 9, "team": "Williams", "points": 15, "color": "64C4FF"},
+            {"position": 10, "team": "Kick Sauber", "points": 0, "color": "52E252"}
         ]
     }
 

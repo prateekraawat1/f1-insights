@@ -126,8 +126,11 @@ function BottomPanel({ track }) {
                 {standings.standings.map((s, i) => (
                   <tr key={i}>
                     <td>{s.position}</td>
-                    <td>{s.team}</td>
-                    <td>{s.points}</td>
+                    <td className="team-col">
+                      <span className="team-color-indicator" style={{ backgroundColor: `#${s.color}` }}></span>
+                      {s.team}
+                    </td>
+                    <td><strong style={{color: 'var(--text-primary)'}}>{s.points} PTS</strong></td>
                   </tr>
                 ))}
               </tbody>
