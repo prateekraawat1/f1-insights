@@ -365,7 +365,7 @@ export default function App() {
           <p>Waiting for the next Formula 1 session to begin...</p>
         </div>
       )}
-      <BottomPanel track={session.track === 'Unknown' ? 'Silverstone' : session.track} />
+      <BottomPanel track={session.track === 'Unknown' ? 'Austria' : session.track} />
     </div>
   );
 }
