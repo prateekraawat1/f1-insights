@@ -300,7 +300,9 @@ async def trigger_loop() -> None:
 
 # ─── Background Task: Telemetry & Session Loop ───────────────────────────────
 
-openf1_client = OpenF1Client(session_monitor)
+from backend.telemetry import TelemetrySimulator, run_telemetry_loop
+
+simulator = TelemetrySimulator()
 
 async def ws_broadcast(payload: dict) -> None:
     """Broadcast generic payload (TELEMETRY, SESSION_INFO, RACE_CONTROL) to WebSocket clients."""
@@ -308,7 +310,6 @@ async def ws_broadcast(payload: dict) -> None:
 
 # Register broadcast callbacks for background tasks
 session_monitor.set_broadcast_callback(ws_broadcast)
-openf1_client._broadcast_cb = ws_broadcast
 
 
 # ─── App Lifespan ─────────────────────────────────────────────────────────────
@@ -324,7 +325,7 @@ async def lifespan(app: FastAPI):
 
     loop = asyncio.get_event_loop()
     t1 = loop.create_task(session_monitor.run(), name="session-monitor")
-    t2 = loop.create_task(openf1_client.run(), name="openf1-client")
+    t2 = loop.create_task(run_telemetry_loop(simulator, ws_broadcast), name="telemetry-simulator")
     t3 = loop.create_task(trigger_loop(), name="trigger-loop")
     t4 = loop.create_task(data_quality_loop(), name="data-quality")
 

@@ -131,26 +131,20 @@ class SessionMonitor:
 
     async def _fetch_latest_session(self) -> SessionInfo | None:
         """Query /v1/sessions?session_key=latest and parse the result."""
-        rows = await self._get("sessions", {"session_key": "latest"})
-        if not rows:
-            return None
-
-        row = rows[0]
-        try:
-            return SessionInfo(
-                session_key        = row["session_key"],
-                meeting_key        = row["meeting_key"],
-                session_name       = row.get("session_name", "Unknown"),
-                session_type       = row.get("session_type", "Unknown"),
-                circuit_short_name = row.get("circuit_short_name", "Unknown"),
-                country_name       = row.get("country_name", "Unknown"),
-                date_start         = row.get("date_start", ""),
-                date_end           = row.get("date_end", ""),
-                year               = row.get("year", datetime.now().year),
-            )
-        except KeyError as exc:
-            logger.error("❌ Unexpected session payload — missing key: %s", exc)
-            return None
+        # For the prototype, since OpenF1 live endpoints are paywalled, 
+        # we inject a mock LIVE session for Silverstone to enable the Telemetry Simulator.
+        return SessionInfo(
+            session_key        = 9999,
+            meeting_key        = 9999,
+            session_name       = "Race",
+            session_type       = "Race",
+            circuit_short_name = "Silverstone",
+            country_name       = "Great Britain",
+            date_start         = datetime.now(timezone.utc).isoformat(),
+            date_end           = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat(),
+            year               = 2026,
+            is_live            = True
+        )
 
     def _compute_is_live(self, session: SessionInfo) -> bool:
         """
@@ -170,25 +164,11 @@ class SessionMonitor:
     # ──────────────────────────── Driver Roster ───────────────────────────────
 
     async def _fetch_drivers(self, session_key: int) -> dict[int, DriverInfo]:
-        """Load all drivers for the session from /v1/drivers."""
-        rows = await self._get("drivers", {"session_key": session_key})
-        drivers: dict[int, DriverInfo] = {}
-        for row in rows:
-            try:
-                d = DriverInfo(
-                    driver_number = row["driver_number"],
-                    name_acronym  = row.get("name_acronym", str(row["driver_number"])),
-                    full_name     = row.get("full_name", "Unknown Driver"),
-                    team_name     = row.get("team_name", "Unknown Team"),
-                    team_colour   = row.get("team_colour", "FFFFFF"),
-                    headshot_url  = row.get("headshot_url", ""),
-                    country_code  = row.get("country_code", ""),
-                )
-                drivers[d.driver_number] = d
-            except KeyError:
-                continue
-        logger.info("👥 Loaded %d drivers for session %s", len(drivers), session_key)
-        return drivers
+        # Load dummy drivers for the simulator
+        return {
+            1: DriverInfo(1, "VER", "Max Verstappen", "Red Bull Racing", "3671C6"),
+            44: DriverInfo(44, "HAM", "Lewis Hamilton", "Ferrari", "E80020")
+        }
 
     # ──────────────────────────── Cache Persistence ───────────────────────────
 
