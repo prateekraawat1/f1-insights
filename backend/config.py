@@ -8,6 +8,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# ─── OpenF1 API ───────────────────────────────────────────────────────────────
+OPENF1_BASE_URL     = os.getenv("OPENF1_BASE_URL", "https://api.openf1.org/v1")
+OPENF1_POLL_INTERVAL = float(os.getenv("OPENF1_POLL_INTERVAL", "2.0"))
+OPENF1_TIMEOUT      = float(os.getenv("OPENF1_TIMEOUT", "5.0"))
+OPENF1_MAX_RETRIES  = int(os.getenv("OPENF1_MAX_RETRIES", "3"))
+# Active session types that trigger the full insight pipeline
+ACTIVE_SESSION_TYPES = set(os.getenv("ACTIVE_SESSIONS", "Race,Sprint").split(","))
+
 # ─── Server ───────────────────────────────────────────────────────────────────
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))
@@ -25,14 +33,20 @@ OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL    = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", "250"))
 
-# ─── Telemetry Simulation ─────────────────────────────────────────────────────
+# ─── Telemetry / Polling ─────────────────────────────────────────────────────
+# Mock simulator speed (kept for local dev / testing without live session)
 TELEMETRY_POLL_INTERVAL = float(os.getenv("TELEMETRY_POLL_INTERVAL", "2.5"))  # seconds
 TRIGGER_CHECK_INTERVAL  = float(os.getenv("TRIGGER_CHECK_INTERVAL",  "1.0"))  # seconds
 
-# ─── Race Context ─────────────────────────────────────────────────────────────
-TRACK_NAME = "Silverstone"
+# ─── Race Context (fallback for mock / offline mode) ─────────────────────────
+# In production these are populated dynamically from session.py + circuits.py
+TRACK_NAME = "Silverstone"   # used only when session discovery is unavailable
 RACE_NAME  = "British Grand Prix 2024"
 TOTAL_LAPS = 52
+
+# ─── Redis Production ─────────────────────────────────────────────────────────
+REDIS_STATE_TTL_S       = int(os.getenv("REDIS_STATE_TTL", "10"))   # seconds before stale state expires
+REDIS_MAX_CONNECTIONS   = int(os.getenv("REDIS_MAX_CONNECTIONS", "20"))
 
 # ─── Trigger Thresholds ───────────────────────────────────────────────────────
 DRS_THREAT_THRESHOLD_S  = 1.0    # seconds — gap < this triggers DRS_THREAT
