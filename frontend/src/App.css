@@ -278,6 +278,18 @@
 }
 .analytics-view {
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.tab-title {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+.stat-boxes {
+  display: flex;
   gap: 20px;
 }
 .stat-box {
@@ -335,6 +347,10 @@
 }
 .schedule-item.past {
   opacity: 0.5;
+}
+.schedule-item.current {
+  border-color: var(--f1-red);
+  background: rgba(225, 6, 0, 0.1);
 }
 .round-badge {
   background: var(--f1-red-dim);

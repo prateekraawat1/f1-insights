@@ -358,6 +358,11 @@ app.add_middleware(
 # ─── New Endpoints for Phase 10 (Analytics & Schedule) ─────────────────────────
 
 import fastf1
+import os
+
+_CACHE_DIR = "./fastf1_cache"
+os.makedirs(_CACHE_DIR, exist_ok=True)
+fastf1.Cache.enable_cache(_CACHE_DIR)
 
 @app.get("/api/analytics")
 def get_analytics(track: str):

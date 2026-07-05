@@ -60,7 +60,9 @@ function BottomPanel({ track }) {
         
         {activeTab === 'analytics' && analytics && (
           <div className="analytics-view">
-            <div className="stat-box">
+            <h3 className="tab-title">Track Analytics for {track}</h3>
+            <div className="stat-boxes">
+              <div className="stat-box">
               <h4>Pit Lane Loss</h4>
               <p>{analytics.pit_lane_loss_s ? `${analytics.pit_lane_loss_s}s` : '--'}</p>
             </div>
@@ -78,11 +80,13 @@ function BottomPanel({ track }) {
               <h4>Overtake Difficulty</h4>
               <p>{analytics.overtake?.avg_delta_s ? `${analytics.overtake.avg_delta_s}s delta needed` : '--'}</p>
             </div>
+            </div>
           </div>
         )}
 
         {activeTab === 'results' && results && results.results && (
           <div className="results-view">
+            <h3 className="tab-title">Past Race Results ({results.year})</h3>
             <table>
               <thead>
                 <tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th><th>Points</th></tr>
@@ -105,14 +109,17 @@ function BottomPanel({ track }) {
         {activeTab === 'schedule' && schedule && schedule.schedule && (
           <div className="schedule-view">
             {schedule.schedule.map((r, i) => {
-              const date = new Date(r.EventDate);
-              const isPast = date < new Date();
+              // Highlight the current track, or determine past based on it
+              const currentRaceIdx = schedule.schedule.findIndex(s => s.Location?.includes(track) || s.Country?.includes(track)) || 0;
+              const isPast = i < currentRaceIdx;
+              const isCurrent = i === currentRaceIdx;
+              
               return (
-                <div key={i} className={`schedule-item ${isPast ? 'past' : ''}`}>
+                <div key={i} className={`schedule-item ${isPast ? 'past' : ''} ${isCurrent ? 'current' : ''}`}>
                   <div className="round-badge">R{r.RoundNumber}</div>
                   <div>
                     <div className="schedule-country">{r.Country}</div>
-                    <div className="schedule-date">{date.toLocaleDateString()}</div>
+                    <div className="schedule-date">{new Date(r.EventDate).toLocaleDateString()}</div>
                   </div>
                 </div>
               );
