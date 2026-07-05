@@ -21,6 +21,7 @@ function BottomPanel({ track }) {
   const [analytics, setAnalytics] = useState(null);
   const [results, setResults] = useState(null);
   const [schedule, setSchedule] = useState(null);
+  const [standings, setStandings] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -46,6 +47,13 @@ function BottomPanel({ track }) {
         .then(data => { setSchedule(data); setLoading(false); })
         .catch(() => setLoading(false));
     }
+    if (activeTab === 'standings' && !standings) {
+      setLoading(true);
+      fetch(`http://localhost:8000/api/standings`)
+        .then(r => r.json())
+        .then(data => { setStandings(data); setLoading(false); })
+        .catch(() => setLoading(false));
+    }
   }, [activeTab, track]);
 
   return (
@@ -53,6 +61,7 @@ function BottomPanel({ track }) {
       <div className="card-header tabs-header">
         <div className={`tab ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>📊 Analytics</div>
         <div className={`tab ${activeTab === 'results' ? 'active' : ''}`} onClick={() => setActiveTab('results')}>🏆 Past Results</div>
+        <div className={`tab ${activeTab === 'standings' ? 'active' : ''}`} onClick={() => setActiveTab('standings')}>🏎️ Standings</div>
         <div className={`tab ${activeTab === 'schedule' ? 'active' : ''}`} onClick={() => setActiveTab('schedule')}>📅 Schedule</div>
       </div>
       <div className="panel-content">
@@ -86,7 +95,7 @@ function BottomPanel({ track }) {
 
         {activeTab === 'results' && results && results.results && (
           <div className="results-view">
-            <h3 className="tab-title">Past Race Results ({results.year})</h3>
+            <h3 className="tab-title">Past Race Results ({new Date().getFullYear()})</h3>
             <table>
               <thead>
                 <tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th><th>Points</th></tr>
@@ -99,6 +108,26 @@ function BottomPanel({ track }) {
                     <td>{r.TeamName}</td>
                     <td>{r.Status}</td>
                     <td>{r.Points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'standings' && standings && standings.standings && (
+          <div className="standings-view">
+            <h3 className="tab-title">Constructor Championship ({new Date().getFullYear()})</h3>
+            <table>
+              <thead>
+                <tr><th>Pos</th><th>Team</th><th>Points</th></tr>
+              </thead>
+              <tbody>
+                {standings.standings.map((s, i) => (
+                  <tr key={i}>
+                    <td>{s.position}</td>
+                    <td>{s.team}</td>
+                    <td>{s.points}</td>
                   </tr>
                 ))}
               </tbody>

@@ -393,15 +393,27 @@ def get_past_results(year: int, track: str):
         for _, row in results.iterrows():
             def safe_val(v, default):
                 return default if pd.isna(v) else v
+            
+            # Ergast fallback: Use ClassifiedPosition if Position is missing
+            pos = row.get("Position")
+            if pd.isna(pos):
+                c_pos = row.get("ClassifiedPosition")
+                pos = int(c_pos) if str(c_pos).isdigit() else 0
+            
+            # Ergast fallback: Assign standard points if missing
+            pts = row.get("Points")
+            if pd.isna(pts) or pts == 0:
+                p_map = {1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1}
+                pts = p_map.get(int(pos), 0) if pos else 0
                 
             res_list.append({
-                "Position": safe_val(row.get("Position"), 0),
+                "Position": int(pos),
                 "DriverNumber": safe_val(row.get("DriverNumber"), ""),
                 "Abbreviation": safe_val(row.get("Abbreviation"), ""),
                 "BroadcastName": safe_val(row.get("BroadcastName"), ""),
                 "TeamName": safe_val(row.get("TeamName"), ""),
                 "Status": safe_val(row.get("Status"), ""),
-                "Points": safe_val(row.get("Points"), 0)
+                "Points": pts
             })
         return {"year": year, "track": track, "results": res_list}
     except Exception as e:
@@ -430,6 +442,24 @@ def get_schedule():
     except Exception as e:
         logger.error(f"Error fetching schedule: {e}")
         return {"error": str(e)}
+
+@app.get("/api/standings")
+def get_standings():
+    """Mock Constructors Championship Standings."""
+    return {
+        "standings": [
+            {"position": 1, "team": "Red Bull Racing", "points": 350},
+            {"position": 2, "team": "Ferrari", "points": 298},
+            {"position": 3, "team": "McLaren", "points": 285},
+            {"position": 4, "team": "Mercedes", "points": 245},
+            {"position": 5, "team": "Aston Martin", "points": 120},
+            {"position": 6, "team": "RB", "points": 45},
+            {"position": 7, "team": "Haas F1 Team", "points": 34},
+            {"position": 8, "team": "Alpine", "points": 28},
+            {"position": 9, "team": "Williams", "points": 15},
+            {"position": 10, "team": "Kick Sauber", "points": 0}
+        ]
+    }
 
 # ─── System Endpoints ───────────────────────────────────────────────────────────
 
