@@ -414,13 +414,20 @@ def get_past_results(year: int, track: str):
             }
             abbrev = safe_val(row.get("Abbreviation"), "")
             overall_pts = mock_season_pts.get(abbrev, 0)
+            
+            team = safe_val(row.get("TeamName"), "")
+            # 2025/2026 Driver Move Overrides
+            if abbrev == "HAM": team = "Ferrari"
+            elif abbrev == "SAI": team = "Williams"
+            elif abbrev == "HUL": team = "Kick Sauber"
+            elif abbrev == "OCO": team = "Haas F1 Team"
                 
             res_list.append({
                 "Position": int(pos),
                 "DriverNumber": safe_val(row.get("DriverNumber"), ""),
                 "Abbreviation": abbrev,
                 "BroadcastName": safe_val(row.get("BroadcastName"), ""),
-                "TeamName": safe_val(row.get("TeamName"), ""),
+                "TeamName": team,
                 "Status": safe_val(row.get("Status"), ""),
                 "Points": pts,
                 "SeasonPoints": overall_pts

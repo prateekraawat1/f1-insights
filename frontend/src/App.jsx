@@ -95,7 +95,7 @@ function BottomPanel({ track }) {
 
         {activeTab === 'results' && results && results.results && (
           <div className="results-view">
-            <h3 className="tab-title">Past Race Results ({new Date().getFullYear()})</h3>
+            <h3 className="tab-title">Past Race Results - {track} ({new Date().getFullYear()})</h3>
             <table>
               <thead>
                 <tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th><th>Race Pts</th><th>Overall Pts</th></tr>
