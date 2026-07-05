@@ -25,7 +25,6 @@ from fastapi.responses import JSONResponse
 
 from backend.cache import cache
 from backend.config import (
-    HISTORICAL_FACTS,
     LLM_SYSTEM_PROMPT,
     OPENAI_API_KEY,
     OPENAI_MAX_TOKENS,
@@ -34,6 +33,7 @@ from backend.config import (
     TRACK_NAME,
     TRIGGER_CHECK_INTERVAL,
 )
+from backend.rag import rag_store
 from backend.telemetry import TelemetrySimulator, run_telemetry_loop
 from backend.triggers import TriggerEngine, TriggerEvent, TriggerType
 
@@ -82,9 +82,9 @@ manager = ConnectionManager()
 def _build_llm_payload(event: TriggerEvent, ver: dict, ham: dict) -> dict[str, Any]:
     """
     Assembles the structured JSON payload that is sent to the LLM.
-    Includes live telemetry data and static historical RAG facts.
+    Includes live telemetry data and dynamic historical RAG facts.
     """
-    facts = HISTORICAL_FACTS.get(event.trigger.value, [])
+    facts = rag_store.get_facts(event.track, event.trigger.value)
     selected_facts = random.sample(facts, min(2, len(facts)))
 
     live_data = {
