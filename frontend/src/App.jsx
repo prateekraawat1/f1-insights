@@ -33,7 +33,7 @@ function BottomPanel({ track }) {
     }
     if (activeTab === 'results' && !results && track && track !== 'Unknown') {
       setLoading(true);
-      const year = new Date().getFullYear() - 1; // Last year
+      const year = new Date().getFullYear(); // Use current year for past results if possible, otherwise fastf1 will handle it or fallback
       fetch(`http://localhost:8000/api/results/${year}/${track}`)
         .then(r => r.json())
         .then(data => { setResults(data); setLoading(false); })
@@ -292,7 +292,6 @@ export default function App() {
               </div>
             </div>
           </aside>
-          <BottomPanel track={session.track} />
         </main>
       ) : (
         <div className="idle-state">
@@ -300,6 +299,7 @@ export default function App() {
           <p>Waiting for the next Formula 1 session to begin...</p>
         </div>
       )}
+      <BottomPanel track={session.track === 'Unknown' ? 'Silverstone' : session.track} />
     </div>
   );
 }
