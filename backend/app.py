@@ -34,7 +34,8 @@ from backend.config import (
     TRIGGER_CHECK_INTERVAL,
 )
 from backend.rag import rag_store
-from backend.telemetry import TelemetrySimulator, run_telemetry_loop
+from backend.session import session_monitor
+from backend.openf1_client import OpenF1Client
 from backend.triggers import TriggerEngine, TriggerEvent, TriggerType
 
 logging.basicConfig(
@@ -298,17 +299,17 @@ async def trigger_loop() -> None:
         await asyncio.sleep(TRIGGER_CHECK_INTERVAL)
 
 
-# ─── Background Task: Telemetry Loop ──────────────────────────────────────────
+# ─── Background Task: Telemetry & Session Loop ───────────────────────────────
 
-_simulator = TelemetrySimulator()
+openf1_client = OpenF1Client(session_monitor)
 
-async def telemetry_broadcast(snapshot: dict) -> None:
-    """Wrap snapshot in a typed WebSocket message and broadcast."""
-    await manager.broadcast({
-        "type":     "TELEMETRY",
-        "snapshot": snapshot,
-        "ts":       time.time(),
-    })
+async def ws_broadcast(payload: dict) -> None:
+    """Broadcast generic payload (TELEMETRY, SESSION_INFO, RACE_CONTROL) to WebSocket clients."""
+    await manager.broadcast(payload)
+
+# Register broadcast callbacks for background tasks
+session_monitor.set_broadcast_callback(ws_broadcast)
+openf1_client._broadcast_cb = ws_broadcast
 
 
 # ─── App Lifespan ─────────────────────────────────────────────────────────────
@@ -323,16 +324,15 @@ async def lifespan(app: FastAPI):
     cache.flush()
 
     loop = asyncio.get_event_loop()
-    t1 = loop.create_task(
-        run_telemetry_loop(_simulator, broadcast_callback=telemetry_broadcast),
-        name="telemetry-loop",
-    )
-    t2 = loop.create_task(trigger_loop(), name="trigger-loop")
+    t1 = loop.create_task(session_monitor.run(), name="session-monitor")
+    t2 = loop.create_task(openf1_client.run(), name="openf1-client")
+    t3 = loop.create_task(trigger_loop(), name="trigger-loop")
 
     yield
 
     t1.cancel()
     t2.cancel()
+    t3.cancel()
     logger.info("🛑 Background tasks cancelled — shutdown complete.")
 
 

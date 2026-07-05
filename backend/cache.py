@@ -18,6 +18,8 @@ from backend.config import (
     REDIS_PORT,
     REDIS_DB,
     REDIS_KEY_PREFIX,
+    REDIS_STATE_TTL_S,
+    REDIS_MAX_CONNECTIONS,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,15 +39,17 @@ class CacheClient:
         Try real Redis first; fall back to FakeRedis if unavailable.
         """
         try:
-            client = redis.Redis(
+            pool = redis.ConnectionPool(
                 host=REDIS_HOST,
                 port=REDIS_PORT,
                 db=REDIS_DB,
-                socket_connect_timeout=1,
+                max_connections=REDIS_MAX_CONNECTIONS,
+                socket_connect_timeout=1.0,
                 decode_responses=True,
             )
+            client = redis.Redis(connection_pool=pool)
             client.ping()
-            logger.info("✅ Connected to Redis at %s:%s", REDIS_HOST, REDIS_PORT)
+            logger.info("✅ Connected to Redis at %s:%s (pool size %d)", REDIS_HOST, REDIS_PORT, REDIS_MAX_CONNECTIONS)
             return client
         except (redis.ConnectionError, redis.TimeoutError) as exc:
             logger.warning(
@@ -56,9 +60,9 @@ class CacheClient:
     # ──────────────────────────── Public API ──────────────────────────────────
 
     def set_state(self, driver_code: str, state: dict[str, Any]) -> None:
-        """Persist a driver's full telemetry state as a JSON hash."""
+        """Persist a driver's full telemetry state as a JSON hash with TTL."""
         key = f"{REDIS_KEY_PREFIX}{driver_code}"
-        self._client.set(key, json.dumps(state))
+        self._client.set(key, json.dumps(state), ex=REDIS_STATE_TTL_S)
 
     def get_state(self, driver_code: str) -> dict[str, Any] | None:
         """Retrieve and deserialise a driver's telemetry state."""
