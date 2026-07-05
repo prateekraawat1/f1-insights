@@ -70,7 +70,13 @@ class CacheClient:
         """Return a list of driver codes currently tracked in the cache."""
         prefix = REDIS_KEY_PREFIX
         keys: list[str] = self._client.keys(f"{prefix}*")
-        return [k.replace(prefix, "") for k in keys]
+        codes = []
+        for k in keys:
+            stripped = k.replace(prefix, "")
+            # Exclude metadata keys (prefixed with "meta:")
+            if not stripped.startswith("meta:"):
+                codes.append(stripped)
+        return codes
 
     def set_race_meta(self, key: str, value: Any) -> None:
         """Store a race-level metadata value (e.g. current lap, SC state)."""
