@@ -405,14 +405,25 @@ def get_past_results(year: int, track: str):
                 p_map = {1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1}
                 pts = p_map.get(int(pos), 0) if pos else 0
                 
+            # Mock season points (since Ergast is deprecated, we add a mock overall points score)
+            mock_season_pts = {
+                "VER": 277, "NOR": 199, "LEC": 177, "PIA": 167, "SAI": 162, 
+                "HAM": 150, "PER": 131, "RUS": 116, "ALO": 49, "STR": 24,
+                "HUL": 22, "TSU": 22, "RIC": 12, "BEA": 6, "GAS": 6,
+                "MAG": 5, "OCO": 5, "ALB": 4, "ZHO": 0, "SAR": 0, "BOT": 0
+            }
+            abbrev = safe_val(row.get("Abbreviation"), "")
+            overall_pts = mock_season_pts.get(abbrev, 0)
+                
             res_list.append({
                 "Position": int(pos),
                 "DriverNumber": safe_val(row.get("DriverNumber"), ""),
-                "Abbreviation": safe_val(row.get("Abbreviation"), ""),
+                "Abbreviation": abbrev,
                 "BroadcastName": safe_val(row.get("BroadcastName"), ""),
                 "TeamName": safe_val(row.get("TeamName"), ""),
                 "Status": safe_val(row.get("Status"), ""),
-                "Points": pts
+                "Points": pts,
+                "SeasonPoints": overall_pts
             })
         return {"year": year, "track": track, "results": res_list}
     except Exception as e:

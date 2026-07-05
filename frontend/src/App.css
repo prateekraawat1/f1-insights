@@ -325,16 +325,16 @@
 }
 .stat-box small { color: var(--text-secondary); }
 
-.results-view table {
+.results-view table, .standings-view table {
   width: 100%;
   border-collapse: collapse;
 }
-.results-view th, .results-view td {
+.results-view th, .results-view td, .standings-view th, .standings-view td {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
-.results-view th {
+.results-view th, .standings-view th {
   color: var(--text-muted);
   font-size: 11px;
   text-transform: uppercase;

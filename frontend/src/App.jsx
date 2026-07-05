@@ -98,7 +98,7 @@ function BottomPanel({ track }) {
             <h3 className="tab-title">Past Race Results ({new Date().getFullYear()})</h3>
             <table>
               <thead>
-                <tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th><th>Points</th></tr>
+                <tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th><th>Race Pts</th><th>Overall Pts</th></tr>
               </thead>
               <tbody>
                 {results.results.map((r, i) => (
@@ -108,6 +108,7 @@ function BottomPanel({ track }) {
                     <td>{r.TeamName}</td>
                     <td>{r.Status}</td>
                     <td>{r.Points}</td>
+                    <td><strong style={{color: 'var(--accent-cyan)'}}>{r.SeasonPoints !== undefined ? r.SeasonPoints : '--'}</strong></td>
                   </tr>
                 ))}
               </tbody>
