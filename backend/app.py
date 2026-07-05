@@ -387,17 +387,21 @@ def get_past_results(year: int, track: str):
         session.load(telemetry=False, weather=False, messages=False)
         results = session.results.head(10)
         
+        import pandas as pd
         # Convert to dictionary safely
         res_list = []
         for _, row in results.iterrows():
+            def safe_val(v, default):
+                return default if pd.isna(v) else v
+                
             res_list.append({
-                "Position": row.get("Position", 0),
-                "DriverNumber": row.get("DriverNumber", ""),
-                "Abbreviation": row.get("Abbreviation", ""),
-                "BroadcastName": row.get("BroadcastName", ""),
-                "TeamName": row.get("TeamName", ""),
-                "Status": row.get("Status", ""),
-                "Points": row.get("Points", 0)
+                "Position": safe_val(row.get("Position"), 0),
+                "DriverNumber": safe_val(row.get("DriverNumber"), ""),
+                "Abbreviation": safe_val(row.get("Abbreviation"), ""),
+                "BroadcastName": safe_val(row.get("BroadcastName"), ""),
+                "TeamName": safe_val(row.get("TeamName"), ""),
+                "Status": safe_val(row.get("Status"), ""),
+                "Points": safe_val(row.get("Points"), 0)
             })
         return {"year": year, "track": track, "results": res_list}
     except Exception as e:
