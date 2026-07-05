@@ -354,7 +354,65 @@ app.add_middleware(
 )
 
 
-# ─── REST Endpoints ───────────────────────────────────────────────────────────
+# ─── New Endpoints for Phase 10 (Analytics & Schedule) ─────────────────────────
+
+import fastf1
+
+@app.get("/api/analytics")
+def get_analytics(track: str):
+    """Return historical tyre cliff and pit loss data for the track."""
+    return rag_store.get_track_stats(track)
+
+@app.get("/api/results/{year}/{track}")
+def get_past_results(year: int, track: str):
+    """Fetch top 10 race results for a past session."""
+    # Note: This is a blocking call and takes ~10-20s the first time
+    try:
+        session = fastf1.get_session(year, track, 'R')
+        session.load(telemetry=False, weather=False, messages=False)
+        results = session.results.head(10)
+        
+        # Convert to dictionary safely
+        res_list = []
+        for _, row in results.iterrows():
+            res_list.append({
+                "Position": row.get("Position", 0),
+                "DriverNumber": row.get("DriverNumber", ""),
+                "Abbreviation": row.get("Abbreviation", ""),
+                "BroadcastName": row.get("BroadcastName", ""),
+                "TeamName": row.get("TeamName", ""),
+                "Status": row.get("Status", ""),
+                "Points": row.get("Points", 0)
+            })
+        return {"year": year, "track": track, "results": res_list}
+    except Exception as e:
+        logger.error(f"Error fetching past results: {e}")
+        return {"error": str(e)}
+
+@app.get("/api/schedule")
+def get_schedule():
+    """Fetch the F1 calendar for the current year."""
+    try:
+        current_year = datetime.now().year
+        schedule = fastf1.get_event_schedule(current_year)
+        
+        # Filter for upcoming races or just return all
+        events = []
+        for _, row in schedule.iterrows():
+            if row.get("EventFormat") != "testing":
+                events.append({
+                    "RoundNumber": row.get("RoundNumber"),
+                    "Country": row.get("Country"),
+                    "Location": row.get("Location"),
+                    "EventName": row.get("EventName"),
+                    "EventDate": str(row.get("EventDate"))
+                })
+        return {"year": current_year, "schedule": events}
+    except Exception as e:
+        logger.error(f"Error fetching schedule: {e}")
+        return {"error": str(e)}
+
+# ─── System Endpoints ───────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["meta"])
 async def health() -> JSONResponse:

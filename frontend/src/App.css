@@ -236,3 +236,113 @@
 }
 .idle-state h2 { font-size: 24px; color: var(--text-primary); margin-bottom: 8px; }
 .idle-state p { font-size: 14px; }
+
+/* ═══════════════════════════════════════════════════════
+   BOTTOM PANEL
+═══════════════════════════════════════════════════════ */
+.bottom-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  min-height: 250px;
+}
+.tabs-header {
+  display: flex;
+  gap: 24px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.2);
+}
+.tab {
+  padding: 16px 0;
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition);
+}
+.tab:hover { color: var(--text-primary); }
+.tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--f1-red);
+}
+.panel-content {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+.loader {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 40px;
+}
+.analytics-view {
+  display: flex;
+  gap: 20px;
+}
+.stat-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  flex: 1;
+}
+.stat-box h4 {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.stat-box p {
+  font-size: 24px;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--accent-cyan);
+  margin-bottom: 4px;
+}
+.stat-box small { color: var(--text-secondary); }
+
+.results-view table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.results-view th, .results-view td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.results-view th {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.schedule-view {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.schedule-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.schedule-item.past {
+  opacity: 0.5;
+}
+.round-badge {
+  background: var(--f1-red-dim);
+  color: var(--f1-red);
+  padding: 8px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 14px;
+}
+.schedule-country { font-weight: 700; color: var(--text-primary); }
+.schedule-date { font-size: 12px; color: var(--text-muted); }

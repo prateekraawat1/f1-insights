@@ -16,6 +16,114 @@ function formatLapTime(timeS) {
   return `${m}:${s}`;
 }
 
+function BottomPanel({ track }) {
+  const [activeTab, setActiveTab] = useState('analytics');
+  const [analytics, setAnalytics] = useState(null);
+  const [results, setResults] = useState(null);
+  const [schedule, setSchedule] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'analytics' && !analytics && track && track !== 'Unknown') {
+      setLoading(true);
+      fetch(`http://localhost:8000/api/analytics?track=${track}`)
+        .then(r => r.json())
+        .then(data => { setAnalytics(data); setLoading(false); })
+        .catch(() => setLoading(false));
+    }
+    if (activeTab === 'results' && !results && track && track !== 'Unknown') {
+      setLoading(true);
+      const year = new Date().getFullYear() - 1; // Last year
+      fetch(`http://localhost:8000/api/results/${year}/${track}`)
+        .then(r => r.json())
+        .then(data => { setResults(data); setLoading(false); })
+        .catch(() => setLoading(false));
+    }
+    if (activeTab === 'schedule' && !schedule) {
+      setLoading(true);
+      fetch(`http://localhost:8000/api/schedule`)
+        .then(r => r.json())
+        .then(data => { setSchedule(data); setLoading(false); })
+        .catch(() => setLoading(false));
+    }
+  }, [activeTab, track]);
+
+  return (
+    <section className="bottom-panel card">
+      <div className="card-header tabs-header">
+        <div className={`tab ${activeTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveTab('analytics')}>📊 Analytics</div>
+        <div className={`tab ${activeTab === 'results' ? 'active' : ''}`} onClick={() => setActiveTab('results')}>🏆 Past Results</div>
+        <div className={`tab ${activeTab === 'schedule' ? 'active' : ''}`} onClick={() => setActiveTab('schedule')}>📅 Schedule</div>
+      </div>
+      <div className="panel-content">
+        {loading && <div className="loader">Loading...</div>}
+        
+        {activeTab === 'analytics' && analytics && (
+          <div className="analytics-view">
+            <div className="stat-box">
+              <h4>Pit Lane Loss</h4>
+              <p>{analytics.pit_lane_loss_s ? `${analytics.pit_lane_loss_s}s` : '--'}</p>
+            </div>
+            <div className="stat-box">
+              <h4>Tyre Degradation (Soft)</h4>
+              <p>{analytics.degradation?.SOFT ? `+${analytics.degradation.SOFT.slope.toFixed(3)}s/lap` : '--'}</p>
+              <small>Cliff: {analytics.degradation?.SOFT ? `${analytics.degradation.SOFT.cliff_lap} laps` : '--'}</small>
+            </div>
+            <div className="stat-box">
+              <h4>Tyre Degradation (Medium)</h4>
+              <p>{analytics.degradation?.MEDIUM ? `+${analytics.degradation.MEDIUM.slope.toFixed(3)}s/lap` : '--'}</p>
+              <small>Cliff: {analytics.degradation?.MEDIUM ? `${analytics.degradation.MEDIUM.cliff_lap} laps` : '--'}</small>
+            </div>
+            <div className="stat-box">
+              <h4>Overtake Difficulty</h4>
+              <p>{analytics.overtake?.avg_delta_s ? `${analytics.overtake.avg_delta_s}s delta needed` : '--'}</p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'results' && results && results.results && (
+          <div className="results-view">
+            <table>
+              <thead>
+                <tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th><th>Points</th></tr>
+              </thead>
+              <tbody>
+                {results.results.map((r, i) => (
+                  <tr key={i}>
+                    <td>{r.Position}</td>
+                    <td>{r.Abbreviation}</td>
+                    <td>{r.TeamName}</td>
+                    <td>{r.Status}</td>
+                    <td>{r.Points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'schedule' && schedule && schedule.schedule && (
+          <div className="schedule-view">
+            {schedule.schedule.map((r, i) => {
+              const date = new Date(r.EventDate);
+              const isPast = date < new Date();
+              return (
+                <div key={i} className={`schedule-item ${isPast ? 'past' : ''}`}>
+                  <div className="round-badge">R{r.RoundNumber}</div>
+                  <div>
+                    <div className="schedule-country">{r.Country}</div>
+                    <div className="schedule-date">{date.toLocaleDateString()}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function App() {
   const [connected, setConnected] = useState(false);
   const [session, setSession] = useState({ state: 'IDLE', track: 'Unknown' });
@@ -184,6 +292,7 @@ export default function App() {
               </div>
             </div>
           </aside>
+          <BottomPanel track={session.track} />
         </main>
       ) : (
         <div className="idle-state">
