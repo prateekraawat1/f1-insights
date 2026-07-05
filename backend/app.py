@@ -37,12 +37,10 @@ from backend.rag import rag_store
 from backend.session import session_monitor
 from backend.openf1_client import OpenF1Client
 from backend.triggers import TriggerEngine, TriggerEvent, TriggerType
+from backend.monitoring import setup_structured_logging, data_quality_loop
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    datefmt="%H:%M:%S",
-)
+# Initialize structured JSON logging
+setup_structured_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -327,12 +325,14 @@ async def lifespan(app: FastAPI):
     t1 = loop.create_task(session_monitor.run(), name="session-monitor")
     t2 = loop.create_task(openf1_client.run(), name="openf1-client")
     t3 = loop.create_task(trigger_loop(), name="trigger-loop")
+    t4 = loop.create_task(data_quality_loop(), name="data-quality")
 
     yield
 
     t1.cancel()
     t2.cancel()
     t3.cancel()
+    t4.cancel()
     logger.info("🛑 Background tasks cancelled — shutdown complete.")
 
 

@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F1 Live Race Insights — British Grand Prix 2024</title>
+  <meta name="description" content="Real-time Formula 1 race strategy intelligence dashboard powered by AI — live telemetry, trigger detection, and expert commentary." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════════════════════
+       DESIGN TOKENS
+    ═══════════════════════════════════════════════════════ */
+    :root {
+      --bg-void:       #040608;
+      --bg-base:       #080c12;
+      --bg-surface:    #0d1520;
+      --bg-elevated:   #111d2e;
+      --bg-glass:      rgba(13, 21, 32, 0.75);
+      --bg-hover:      rgba(255,255,255,0.04);
+
+      --border:        rgba(255,255,255,0.07);
+      --border-bright: rgba(255,255,255,0.14);
+
+      --f1-red:        #e8002d;
+      --f1-red-glow:   rgba(232,0,45,0.25);
+      --f1-red-dim:    rgba(232,0,45,0.12);
+      --accent:        #e8002d;
+      --accent-orange: #ff6b00;
+      --accent-yellow: #ffd600;
+      --accent-cyan:   #00d4ff;
+      --accent-green:  #00e676;
+      --accent-purple: #c653ff;
+
+      --text-primary:  #f0f4f8;
+      --text-secondary:#8899aa;
+      --text-muted:    #4a5a6a;
+      --text-disabled: #2a3a4a;
+
+      --tyre-soft:     #e8002d;
+      --tyre-medium:   #ffd600;
+      --tyre-hard:     #ffffff;
+      --tyre-inter:    #00e676;
+      --tyre-wet:      #00aaff;
+
+      --drs-active:    #00e676;
+      --drs-inactive:  #4a5a6a;
+
+      --font-ui:       'Inter', system-ui, sans-serif;
+      --font-mono:     'JetBrains Mono', 'Courier New', monospace;
+
+      --radius-sm:     6px;
+      --radius-md:     12px;
+      --radius-lg:     18px;
+      --radius-xl:     24px;
+
+      --shadow-card:   0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+      --shadow-glow-r: 0 0 40px rgba(232,0,45,0.3), 0 0 80px rgba(232,0,45,0.1);
+      --shadow-glow-c: 0 0 40px rgba(0,212,255,0.2);
+
+      --transition:    0.2s ease;
+      --transition-slow: 0.5s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg-void);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Animated starfield background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 20%, rgba(232,0,45,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,212,255,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 100% at 50% 0%, rgba(13,21,32,0.95) 0%, var(--bg-void) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       SCROLLBAR
+    ═══════════════════════════════════════════════════════ */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--f1-red); }
+
+    /* ═══════════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════════ */
+    .app {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       HEADER / NAV BAR
+    ═══════════════════════════════════════════════════════ */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 64px;
+      background: rgba(8,12,18,0.95);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .f1-logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .f1-emblem {
+      width: 40px;
+      height: 40px;
+      background: var(--f1-red);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: -1px;
+      color: #fff;
+      box-shadow: 0 0 20px var(--f1-red-glow);
+      flex-shrink: 0;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text-primary);
+    }
+    .brand-sub {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .topbar-divider {
+      width: 1px;
+      height: 32px;
+      background: var(--border);
+    }
+
+    .race-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+      animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+
+    .live-dot.disconnected {
+      background: var(--text-muted);
+      box-shadow: none;
+      animation: none;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .lap-counter {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .lap-label {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .lap-value {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .lap-value span {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .conn-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+    .conn-status.connected { border-color: rgba(0,230,118,0.3); color: var(--accent-green); }
+    .conn-status.error     { border-color: rgba(232,0,45,0.3);  color: var(--f1-red); }
+
+    /* ═══════════════════════════════════════════════════════
+       MAIN GRID
+    ═══════════════════════════════════════════════════════ */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      grid-template-rows: auto auto 1fr;
+      gap: 16px;
+      padding: 20px 24px 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       CARD COMPONENT
+    ═══════════════════════════════════════════════════════ */
+    .card {
+      background: var(--bg-glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      transition: border-color var(--transition);
+    }
+    .card:hover { border-color: var(--border-bright); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .card-title-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .card-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       DRIVER BATTLE SECTION (spans full width)
+    ═══════════════════════════════════════════════════════ */
+    .battle-section {
+      grid-column: 1 / 2;
+      grid-row: 1;
+    }
+
+    .battle-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      padding: 20px;
+      align-items: center;
+    }
+
+    /* ─── Driver Card ─── */
+    .driver-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition-slow);
+    }
+
+    .driver-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .driver-card.ver::before { background: linear-gradient(90deg, #0033cc, #3399ff); }
+    .driver-card.ham::before { background: linear-gradient(90deg, #00d2be, #ffffff); }
+
+    .driver-card.drs-active-card {
+      border-color: rgba(0,230,118,0.4);
+      box-shadow: 0 0 30px rgba(0,230,118,0.1);
+    }
+
+    .driver-card.pitting {
+      border-color: rgba(255,107,0,0.5);
+      box-shadow: 0 0 30px rgba(255,107,0,0.15);
+      animation: pit-pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pit-pulse {
+      0%, 100% { border-color: rgba(255,107,0,0.5); }
+      50% { border-color: rgba(255,107,0,0.9); }
+    }
+
+    .driver-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .driver-position {
+      font-family: var(--font-mono);
+      font-size: 48px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--text-disabled);
+    }
+    .driver-position.p1 { color: var(--accent-yellow); text-shadow: 0 0 30px rgba(255,214,0,0.4); }
+    .driver-position.p2 { color: var(--text-secondary); }
+
+    .driver-info {
+      text-align: right;
+    }
+    .driver-code {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .driver-card.ver .driver-code { color: #3399ff; }
+    .driver-card.ham .driver-code { color: #00d2be; }
+
+    .driver-name {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    .driver-team {
+      font-size: 10px;
+      color: var(--text-disabled);
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .telem-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+    }
+
+    .telem-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .telem-value {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    .telem-value.highlight { color: var(--accent-cyan); }
+    .telem-value.warn      { color: var(--accent-orange); }
+    .telem-value.danger    { color: var(--f1-red); }
+    .telem-value.good      { color: var(--accent-green); }
+
+    /* Tyre indicator */
+    .tyre-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tyre-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(0,0,0,0.3);
+      flex-shrink: 0;
+    }
+    .tyre-dot.soft   { background: var(--tyre-soft);   box-shadow: 0 0 8px rgba(232,0,45,0.5); }
+    .tyre-dot.medium { background: var(--tyre-medium);  box-shadow: 0 0 8px rgba(255,214,0,0.5); }
+    .tyre-dot.hard   { background: var(--tyre-hard);   box-shadow: 0 0 8px rgba(255,255,255,0.3); }
+
+    /* DRS pill */
+    .drs-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      transition: all var(--transition);
+      border: 1px solid transparent;
+    }
+    .drs-pill.active {
+      background: rgba(0,230,118,0.15);
+      border-color: rgba(0,230,118,0.4);
+      color: var(--accent-green);
+      box-shadow: 0 0 12px rgba(0,230,118,0.2);
+    }
+    .drs-pill.inactive {
+      background: rgba(74,90,106,0.2);
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+
+    /* ─── Battle Center ─── */
+    .battle-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      min-width: 140px;
+    }
+
+    .gap-display {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      text-align: center;
+      width: 100%;
+      transition: all var(--transition-slow);
+    }
+
+    .gap-display.critical {
+      border-color: rgba(232,0,45,0.5);
+      background: rgba(232,0,45,0.05);
+      box-shadow: 0 0 30px rgba(232,0,45,0.2);
+    }
+
+    .gap-display.drs-range {
+      border-color: rgba(0,230,118,0.4);
+      background: rgba(0,230,118,0.05);
+      box-shadow: 0 0 20px rgba(0,230,118,0.1);
+    }
+
+    .gap-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .gap-value {
+      font-family: var(--font-mono);
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 1;
+      transition: all var(--transition-slow);
+    }
+    .gap-value.gap-closing { color: var(--f1-red); text-shadow: 0 0 20px rgba(232,0,45,0.5); }
+    .gap-value.gap-drs     { color: var(--accent-green); text-shadow: 0 0 20px rgba(0,230,118,0.5); }
+    .gap-value.gap-normal  { color: var(--text-primary); }
+
+    .gap-unit {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+
+    .gap-trend {
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .gap-trend.closing { color: var(--f1-red); }
+    .gap-trend.opening { color: var(--accent-green); }
+
+    .drs-zone-indicator {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: rgba(74,90,106,0.15);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      transition: all var(--transition);
+    }
+    .drs-zone-indicator.enabled {
+      background: rgba(0,230,118,0.1);
+      border-color: rgba(0,230,118,0.35);
+      color: var(--accent-green);
+      box-shadow: 0 0 16px rgba(0,230,118,0.15);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       TRIGGER PANEL (right sidebar)
+    ═══════════════════════════════════════════════════════ */
+    .sidebar {
+      grid-column: 2;
+      grid-row: 1 / 4;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .trigger-list {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .trigger-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      cursor: default;
+      transition: all var(--transition);
+      animation: slide-in 0.4s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .trigger-item.drs_threat {
+      border-color: rgba(232,0,45,0.4);
+      background: rgba(232,0,45,0.06);
+      box-shadow: 0 0 20px rgba(232,0,45,0.1);
+    }
+    .trigger-item.undercut {
+      border-color: rgba(255,107,0,0.4);
+      background: rgba(255,107,0,0.06);
+      box-shadow: 0 0 20px rgba(255,107,0,0.1);
+    }
+    .trigger-item.pace_drop {
+      border-color: rgba(255,214,0,0.4);
+      background: rgba(255,214,0,0.06);
+      box-shadow: 0 0 20px rgba(255,214,0,0.1);
+    }
+    .trigger-item.box_window {
+      border-color: rgba(0,212,255,0.4);
+      background: rgba(0,212,255,0.06);
+      box-shadow: 0 0 20px rgba(0,212,255,0.1);
+    }
+
+    .trigger-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .trigger-type-badge {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .drs_threat .trigger-type-badge  { background: var(--f1-red-dim);          color: var(--f1-red); }
+    .undercut   .trigger-type-badge  { background: rgba(255,107,0,0.15);        color: var(--accent-orange); }
+    .pace_drop  .trigger-type-badge  { background: rgba(255,214,0,0.12);        color: var(--accent-yellow); }
+    .box_window .trigger-type-badge  { background: rgba(0,212,255,0.1);         color: var(--accent-cyan); }
+
+    .trigger-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .trigger-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .trigger-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .trigger-chip {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    .severity-badge {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .severity-HIGH   { background: rgba(232,0,45,0.2); color: var(--f1-red); }
+    .severity-MEDIUM { background: rgba(255,214,0,0.15); color: var(--accent-yellow); }
+    .severity-LOW    { background: rgba(74,90,106,0.2); color: var(--text-muted); }
+
+    .no-triggers {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .no-triggers .icon { font-size: 28px; margin-bottom: 8px; opacity: 0.4; }
+
+    /* ═══════════════════════════════════════════════════════
+       AI COMMENTARY BOX
+    ═══════════════════════════════════════════════════════ */
+    .ai-section {
+      grid-column: 1 / 2;
+      grid-row: 2;
+    }
+
+    .insight-content {
+      padding: 20px;
+    }
+
+    .insight-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 40px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .insight-empty-icon {
+      font-size: 40px;
+      opacity: 0.3;
+    }
+
+    .insight-empty-text {
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 320px;
+    }
+
+    .insight-card {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      animation: fade-up 0.5s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .insight-card.visible { display: flex; }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .insight-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .ai-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--f1-red), #660015);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(232,0,45,0.3);
+    }
+
+    .ai-meta {
+      flex: 1;
+    }
+
+    .ai-name {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .ai-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .ai-trigger-pill {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      background: var(--f1-red-dim);
+      color: var(--f1-red);
+      border: 1px solid rgba(232,0,45,0.3);
+      text-transform: uppercase;
+    }
+
+    .insight-body {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      font-weight: 400;
+      letter-spacing: 0.1px;
+    }
+
+    /* Typing cursor */
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 16px;
+      background: var(--f1-red);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 0.8s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .insight-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .insight-data-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .data-chip {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    .insight-timestamp {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       TELEMETRY LOG
+    ═══════════════════════════════════════════════════════ */
+    .log-section {
+      grid-column: 1 / 2;
+      grid-row: 3;
+    }
+
+    .telemetry-log {
+      height: 220px;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .log-entry {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background var(--transition);
+      animation: log-in 0.3s ease;
+    }
+
+    @keyframes log-in {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .log-entry:hover { background: var(--bg-hover); }
+
+    .log-ts {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-disabled);
+      flex-shrink: 0;
+      width: 52px;
+    }
+
+    .log-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .log-badge.telemetry { background: rgba(0,212,255,0.1); color: var(--accent-cyan); }
+    .log-badge.trigger   { background: rgba(232,0,45,0.15); color: var(--f1-red); }
+    .log-badge.insight   { background: rgba(198,83,255,0.15); color: var(--accent-purple); }
+    .log-badge.system    { background: rgba(74,90,106,0.2);   color: var(--text-muted); }
+    .log-badge.connected { background: rgba(0,230,118,0.15); color: var(--accent-green); }
+
+    .log-msg {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      flex: 1;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       TRACK MINI-MAP (sidebar)
+    ═══════════════════════════════════════════════════════ */
+    .track-section { }
+
+    .track-visual {
+      padding: 16px;
+    }
+
+    .track-svg-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .track-svg-wrap svg {
+      width: 90%;
+      height: 90%;
+    }
+
+    /* Car dots on track */
+    .car-dot {
+      transition: all 1s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    /* DRS Zone labels */
+    .drs-zone-label {
+      font-size: 8px;
+      fill: var(--accent-green);
+      font-weight: 700;
+      opacity: 0.7;
+    }
+
+    /* ─── Lap Progress Bar ─── */
+    .lap-progress-wrap {
+      padding: 0 16px 16px;
+    }
+
+    .lap-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .lap-progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-elevated);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .lap-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--f1-red), var(--accent-orange));
+      border-radius: 3px;
+      transition: width 2s ease;
+      box-shadow: 0 0 10px rgba(232,0,45,0.4);
+    }
+
+    /* ─── Circuit Stats ─── */
+    .circuit-stats {
+      padding: 0 16px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       LOADING / CONNECTING STATE
+    ═══════════════════════════════════════════════════════ */
+    .connecting-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4,6,8,0.92);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      transition: opacity 0.5s ease;
+    }
+
+    .connecting-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--bg-elevated);
+      border-top-color: var(--f1-red);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .connecting-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .connecting-sub {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       UTILITY
+    ═══════════════════════════════════════════════════════ */
+    .flicker {
+      animation: flicker 0.15s ease;
+    }
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .number-update {
+      animation: num-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes num-pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ──────────────────────────────────────
+     CONNECTING OVERLAY
+────────────────────────────────────── -->
+<div class="connecting-overlay" id="connectingOverlay">
+  <div class="spinner"></div>
+  <div class="connecting-title">🏎️ Connecting to Race Feed</div>
+  <div class="connecting-sub" id="connectingMsg">ws://localhost:8000/ws</div>
+</div>
+
+<!-- ──────────────────────────────────────
+     APP SHELL
+────────────────────────────────────── -->
+<div class="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="f1-logo-wrap">
+        <div class="f1-emblem">F1</div>
+        <div class="brand-text">
+          <div class="brand-title">Race Insight Architecture</div>
+          <div class="brand-sub">AI-Powered Pit Wall Intelligence</div>
+        </div>
+      </div>
+
+      <div class="topbar-divider"></div>
+
+      <div class="race-badge" id="raceBadge">
+        <div class="live-dot disconnected" id="liveDot"></div>
+        <span id="raceName">British Grand Prix 2024 — Silverstone</span>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="lap-counter">
+        <div class="lap-label">Lap</div>
+        <div class="lap-value"><span id="currentLap">--</span><span> / 52</span></div>
+      </div>
+      <div class="conn-status" id="connStatus">
+        <span id="connIcon">◌</span>
+        <span id="connText">Connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN GRID -->
+  <main class="main-grid">
+
+    <!-- ══ LEFT / CENTER COLUMN ══ -->
+
+    <!-- 1. BATTLE SECTION -->
+    <section class="battle-section">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon" style="background:rgba(232,0,45,0.15)">⚔️</div>
+            Live Driver Battle
+          </div>
+          <div class="card-badge" id="battleStatus" style="background:rgba(74,90,106,0.2);color:var(--text-muted)">MONITORING</div>
+        </div>
+
+        <div class="battle-grid">
+
+          <!-- VER Card -->
+          <div class="driver-card ver" id="verCard">
+            <div class="driver-header">
+              <div class="driver-position p1" id="verPosition">1</div>
+              <div class="driver-info">
+                <div class="driver-code">VER</div>
+                <div class="driver-name">Max Verstappen</div>
+                <div class="driver-team">Red Bull Racing</div>
+              </div>
+            </div>
+            <div class="telemetry-grid">
+              <div class="telem-item">
+                <div class="telem-label">Speed</div>
+                <div class="telem-value highlight" id="verSpeed">---</div>
+              </div>
+              <div class="telem-item">
+                <div class="telem-label">Last Lap</div>
+                <div class="telem-value" id="verLapTime">--:--.---</div>
+              </div>
+              <div class="telem-item">
+                <div class="telem-label">Avg (3-lap)</div>
+                <div class="telem-value" id="verAvg">--:--.---</div>
+              </div>
+              <div class="telem-item" style="grid-column: span 2">
+                <div class="telem-label">Tyre</div>
+                <div class="tyre-indicator">
+                  <div class="tyre-dot medium" id="verTyreDot"></div>
+                  <div class="telem-value" id="verTyre">MED · -- laps</div>
+                </div>
+              </div>
+              <div class="telem-item">
+                <div class="telem-label">DRS</div>
+                <div class="drs-pill inactive" id="verDrs">OFF</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center Gap -->
+          <div class="battle-center">
+            <div class="gap-display" id="gapDisplay">
+              <div class="gap-label">Gap</div>
+              <div class="gap-value gap-normal" id="gapValue">--.--<span class="gap-unit">s</span></div>
+              <div class="gap-trend" id="gapTrend">● Monitoring</div>
+            </div>
+            <div class="drs-zone-indicator" id="drsZoneIndicator">
+              <span>📡</span>
+              <span>DRS Zone</span>
+            </div>
+          </div>
+
+          <!-- HAM Card -->
+          <div class="driver-card ham" id="hamCard">
+            <div class="driver-header">
+              <div class="driver-position p2" id="hamPosition">2</div>
+              <div class="driver-info">
+                <div class="driver-code">HAM</div>
+                <div class="driver-name">Lewis Hamilton</div>
+                <div class="driver-team">Mercedes-AMG</div>
+              </div>
+            </div>
+            <div class="telemetry-grid">
+              <div class="telem-item">
+                <div class="telem-label">Speed</div>
+                <div class="telem-value highlight" id="hamSpeed">---</div>
+              </div>
+              <div class="telem-item">
+                <div class="telem-label">Last Lap</div>
+                <div class="telem-value" id="hamLapTime">--:--.---</div>
+              </div>
+              <div class="telem-item">
+                <div class="telem-label">Avg (3-lap)</div>
+                <div class="telem-value" id="hamAvg">--:--.---</div>
+              </div>
+              <div class="telem-item" style="grid-column: span 2">
+                <div class="telem-label">Tyre</div>
+                <div class="tyre-indicator">
+                  <div class="tyre-dot medium" id="hamTyreDot"></div>
+                  <div class="telem-value" id="hamTyre">MED · -- laps</div>
+                </div>
+              </div>
+              <div class="telem-item">
+                <div class="telem-label">DRS</div>
+                <div class="drs-pill inactive" id="hamDrs">OFF</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. AI COMMENTARY SECTION -->
+    <section class="ai-section">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon" style="background:rgba(198,83,255,0.15)">🤖</div>
+            AI Race Strategist
+          </div>
+          <div class="card-badge" id="aiBadge" style="background:rgba(74,90,106,0.2);color:var(--text-muted)">STANDBY</div>
+        </div>
+
+        <div class="insight-content">
+
+          <!-- Empty state -->
+          <div class="insight-empty" id="insightEmpty">
+            <div class="insight-empty-icon">📡</div>
+            <div class="insight-empty-text">
+              Monitoring live telemetry feed.<br/>
+              AI insights will appear here when a strategic trigger fires.
+            </div>
+          </div>
+
+          <!-- Populated insight -->
+          <div class="insight-card" id="insightCard">
+            <div class="insight-header">
+              <div class="ai-avatar">🎙️</div>
+              <div class="ai-meta">
+                <div class="ai-name">Race Strategy AI</div>
+                <div class="ai-subtitle">Live pit-wall analysis — British Grand Prix 2024</div>
+              </div>
+              <div class="ai-trigger-pill" id="insightTriggerPill">—</div>
+            </div>
+
+            <div class="insight-body" id="insightBody">
+              <span id="insightText"></span><span class="cursor" id="insightCursor"></span>
+            </div>
+
+            <div class="insight-footer">
+              <div class="insight-data-chips" id="insightChips"></div>
+              <div class="insight-timestamp" id="insightTs"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. TELEMETRY LOG -->
+    <section class="log-section">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon" style="background:rgba(0,212,255,0.1)">📊</div>
+            Live Telemetry Stream
+          </div>
+          <div id="logCount" class="card-badge" style="background:rgba(0,212,255,0.1);color:var(--accent-cyan)">0 events</div>
+        </div>
+        <div class="telemetry-log" id="telemetryLog">
+          <div class="log-entry">
+            <div class="log-ts">--:--:--</div>
+            <div class="log-badge system">SYS</div>
+            <div class="log-msg">Awaiting connection to backend WebSocket…</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ RIGHT SIDEBAR ══ -->
+    <aside class="sidebar">
+
+      <!-- TRIGGER PANEL -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon" style="background:rgba(232,0,45,0.15)">⚡</div>
+            Trigger Events
+          </div>
+          <div class="card-badge" id="triggerCount" style="background:var(--f1-red-dim);color:var(--f1-red)">0 fired</div>
+        </div>
+        <div class="trigger-list" id="triggerList">
+          <div class="no-triggers">
+            <div class="icon">🔍</div>
+            <div>Monitoring for strategic triggers…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRACK INFO -->
+      <div class="card track-section">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="card-title-icon" style="background:rgba(0,230,118,0.1)">🏁</div>
+            Silverstone Circuit
+          </div>
+          <div class="card-badge" style="background:rgba(0,230,118,0.1);color:var(--accent-green)">UK GP</div>
+        </div>
+
+        <!-- Simplified Silverstone SVG Track -->
+        <div class="track-visual">
+          <div class="track-svg-wrap">
+            <svg viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg" id="trackSvg">
+              <!-- Track outline (simplified Silverstone shape) -->
+              <path id="trackPath"
+                d="M 240 60 C 270 60 280 80 275 105
+                   C 270 130 255 140 240 145
+                   C 225 150 215 155 210 170
+                   C 205 185 200 195 185 200
+                   C 165 205 145 200 125 195
+                   C 105 190 90 185 75 178
+                   C 55 168 40 155 35 138
+                   C 30 121 35 104 45 92
+                   C 55 80 70 72 80 65
+                   C 95 55 110 50 130 48
+                   C 155 46 175 48 200 50
+                   C 215 52 230 58 240 60 Z"
+                stroke="rgba(255,255,255,0.08)"
+                stroke-width="18"
+                stroke-linejoin="round"
+              />
+              <!-- Track center line -->
+              <path
+                d="M 240 60 C 270 60 280 80 275 105
+                   C 270 130 255 140 240 145
+                   C 225 150 215 155 210 170
+                   C 205 185 200 195 185 200
+                   C 165 205 145 200 125 195
+                   C 105 190 90 185 75 178
+                   C 55 168 40 155 35 138
+                   C 30 121 35 104 45 92
+                   C 55 80 70 72 80 65
+                   C 95 55 110 50 130 48
+                   C 155 46 175 48 200 50
+                   C 215 52 230 58 240 60 Z"
+                stroke="rgba(255,255,255,0.18)"
+                stroke-width="2"
+              />
+
+              <!-- DRS Zone 1 highlight (Wellington Straight) -->
+              <path
+                d="M 200 50 C 215 52 230 58 240 60"
+                stroke="rgba(0,230,118,0.7)"
+                stroke-width="4"
+                stroke-linecap="round"
+              />
+              <text x="214" y="45" class="drs-zone-label" text-anchor="middle">DRS 1</text>
+
+              <!-- DRS Zone 2 highlight (Hangar Straight) -->
+              <path
+                d="M 255 140 C 240 145 225 150 210 170"
+                stroke="rgba(0,230,118,0.7)"
+                stroke-width="4"
+                stroke-linecap="round"
+              />
+              <text x="250" y="165" class="drs-zone-label" text-anchor="middle">DRS 2</text>
+
+              <!-- Pit lane marker -->
+              <rect x="175" y="50" width="2" height="12" rx="1" fill="rgba(255,107,0,0.8)" />
+              <text x="178" y="62" style="font-size:7px;fill:rgba(255,107,0,0.8);font-weight:700;">PIT</text>
+
+              <!-- Start/Finish line -->
+              <rect x="195" y="45" width="2" height="12" rx="1" fill="rgba(255,255,255,0.5)" />
+
+              <!-- VER Car (blue dot) -->
+              <circle id="verCarDot" cx="240" cy="60" r="7" fill="#3399ff" class="car-dot">
+                <animate attributeName="r" values="7;8.5;7" dur="1.5s" repeatCount="indefinite"/>
+              </circle>
+              <text id="verCarLabel" x="240" y="63" text-anchor="middle"
+                style="font-size:6px;fill:#fff;font-weight:800;pointer-events:none;">VER</text>
+
+              <!-- HAM Car (teal dot) -->
+              <circle id="hamCarDot" cx="220" cy="52" r="7" fill="#00d2be" class="car-dot">
+                <animate attributeName="r" values="7;8.5;7" dur="1.5s" begin="0.5s" repeatCount="indefinite"/>
+              </circle>
+              <text id="hamCarLabel" x="220" y="55" text-anchor="middle"
+                style="font-size:6px;fill:#fff;font-weight:800;pointer-events:none;">HAM</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Lap progress -->
+        <div class="lap-progress-wrap">
+          <div class="lap-progress-label">
+            <span>LAP PROGRESS</span>
+            <span id="lapProgressText">-- / 52</span>
+          </div>
+          <div class="lap-progress-bar">
+            <div class="lap-progress-fill" id="lapProgressFill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Circuit stats -->
+        <div class="circuit-stats">
+          <div class="stat-item">
+            <div class="stat-label">Circuit Length</div>
+            <div class="stat-value">5.891 km</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">DRS Zones</div>
+            <div class="stat-value">2</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Detection Pts</div>
+            <div class="stat-value">2</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Pit Delta</div>
+            <div class="stat-value">~22.0s</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+</div>
+
+<!-- ──────────────────────────────────────
+     JAVASCRIPT
+────────────────────────────────────── -->
+<script>
+  'use strict';
+
+  // ═══════════════════════════════════
+  // CONFIG
+  // ═══════════════════════════════════
+  const WS_URL    = 'ws://localhost:8000/ws';
+  const MAX_LOG   = 120;
+  const RECONNECT = 3000;
+
+  // ═══════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════
+  let ws           = null;
+  let reconnectTmr = null;
+  let logCount     = 0;
+  let triggerCount = 0;
+  let prevGap      = null;
+  let isTyping     = false;
+  let typeQueue    = [];
+
+  // Car positions on the SVG track path (t values 0–1 mapped to path points)
+  // We use a simple interpolation along a set of key coordinates for the Silverstone shape.
+  const TRACK_POINTS = [
+    [240,60],[260,70],[272,90],[272,110],[260,128],[245,140],
+    [228,148],[215,158],[210,172],[205,185],[193,198],[178,204],
+    [160,205],[140,202],[120,196],[102,190],[86,182],[68,172],
+    [50,160],[38,145],[32,128],[32,110],[37,96],[48,85],
+    [60,76],[72,68],[85,62],[100,56],[118,51],[136,48],
+    [158,47],[178,48],[200,50],[218,52],[232,56],[240,60]
+  ];
+
+  // ═══════════════════════════════════
+  // WEBSOCKET
+  // ═══════════════════════════════════
+  function connect() {
+    try {
+      ws = new WebSocket(WS_URL);
+    } catch(e) {
+      scheduleReconnect();
+      return;
+    }
+
+    ws.onopen = () => {
+      clearTimeout(reconnectTmr);
+      setConnected(true);
+      appendLog('system', `Connected to ${WS_URL}`, 'connected');
+      hideOverlay();
+    };
+
+    ws.onmessage = (evt) => {
+      let msg;
+      try { msg = JSON.parse(evt.data); }
+      catch { return; }
+      handleMessage(msg);
+    };
+
+    ws.onerror = () => {};
+
+    ws.onclose = () => {
+      setConnected(false);
+      appendLog('system', 'WebSocket disconnected. Reconnecting…', 'system');
+      scheduleReconnect();
+    };
+  }
+
+  function scheduleReconnect() {
+    clearTimeout(reconnectTmr);
+    reconnectTmr = setTimeout(connect, RECONNECT);
+    updateOverlayMsg(`Reconnecting in ${RECONNECT/1000}s…`);
+  }
+
+  // ═══════════════════════════════════
+  // MESSAGE HANDLER
+  // ═══════════════════════════════════
+  function handleMessage(msg) {
+    switch(msg.type) {
+      case 'CONNECTED':
+        appendLog('system', msg.message, 'connected');
+        break;
+      case 'TELEMETRY':
+        handleTelemetry(msg);
+        break;
+      case 'INSIGHT':
+        handleInsight(msg);
+        break;
+    }
+  }
+
+  function handleTelemetry(msg) {
+    const { snapshot } = msg;
+    if (!snapshot) return;
+
+    const { VER, HAM, meta } = snapshot;
+    const gap = meta?.gap ?? 0;
+    const lap = meta?.lap ?? '--';
+
+    updateDriverCard('ver', VER, gap);
+    updateDriverCard('ham', HAM, gap);
+    updateGapDisplay(gap);
+    updateLapCounter(lap);
+
+    const note = meta?.note || '';
+    appendLog(
+      `VER ${(VER?.lap_time_s||0).toFixed(3)}s | HAM ${(HAM?.lap_time_s||0).toFixed(3)}s | Gap: ${Math.abs(gap).toFixed(3)}s${note ? ' | ' + note : ''}`,
+      'telemetry'
+    );
+  }
+
+  function handleInsight(msg) {
+    const { trigger, insight } = msg;
+    if (!trigger || !insight) return;
+
+    const triggerType = trigger.trigger;
+    triggerCount++;
+
+    // Add to trigger panel
+    addTriggerItem(trigger);
+
+    // Update AI commentary
+    showInsight(triggerType, trigger, insight);
+
+    appendLog(`AI INSIGHT fired: ${triggerType} → Lap ${trigger.lap}`, 'insight');
+  }
+
+  // ═══════════════════════════════════
+  // UI UPDATERS
+  // ═══════════════════════════════════
+  function updateDriverCard(id, state, gap) {
+    if (!state) return;
+
+    const isVer = id === 'ver';
+
+    setText(`${id}Speed`,    `${Math.round(state.speed_kph)} kph`);
+    setText(`${id}LapTime`,  formatLapTime(state.lap_time_s));
+    setText(`${id}Avg`,      formatLapTime(state.rolling_avg_lap_s));
+
+    // Tyre
+    const compound  = (state.tyre_compound || 'MEDIUM').toLowerCase();
+    const age       = state.tyre_age_laps || 0;
+    const tyreDot   = document.getElementById(`${id}TyreDot`);
+    const tyreText  = document.getElementById(`${id}Tyre`);
+    if (tyreDot) {
+      tyreDot.className = `tyre-dot ${compound}`;
+    }
+    if (tyreText) {
+      tyreText.textContent = `${(state.tyre_compound||'?').substring(0,3)} · ${age} laps`;
+    }
+
+    // Lap time colour (pace drop warning)
+    const lapEl = document.getElementById(`${id}LapTime`);
+    if (lapEl && state.rolling_avg_lap_s > 0) {
+      const delta = state.lap_time_s - state.rolling_avg_lap_s;
+      lapEl.className = 'telem-value' + (delta > 0.8 ? ' danger' : delta > 0.4 ? ' warn' : '');
+    }
+
+    // DRS
+    const drsEl = document.getElementById(`${id}Drs`);
+    if (drsEl) {
+      const active = state.drs_enabled;
+      drsEl.className = `drs-pill ${active ? 'active' : 'inactive'}`;
+      drsEl.textContent = active ? 'OPEN' : 'OFF';
+    }
+
+    // Card state
+    const card = document.getElementById(`${id}Card`);
+    if (card) {
+      card.classList.toggle('drs-active-card', state.drs_enabled);
+      card.classList.toggle('pitting', state.in_pit);
+    }
+
+    // Position
+    const pos = state.position;
+    const posEl = document.getElementById(`${id}Position`);
+    if (posEl) {
+      posEl.textContent = pos;
+      posEl.className = `driver-position p${pos}`;
+    }
+
+    // Move car on track SVG
+    moveCarOnTrack(id, gap, isVer);
+  }
+
+  function updateGapDisplay(gap) {
+    const absGap   = Math.abs(gap);
+    const gapEl    = document.getElementById('gapValue');
+    const gapDisp  = document.getElementById('gapDisplay');
+    const trendEl  = document.getElementById('gapTrend');
+    const drsInd   = document.getElementById('drsZoneIndicator');
+    const battle   = document.getElementById('battleStatus');
+
+    if (!gapEl) return;
+
+    gapEl.innerHTML = `${absGap.toFixed(2)}<span class="gap-unit">s</span>`;
+
+    // Determine gap class
+    const isDrs     = absGap < 1.0;
+    const isCritical= absGap < 0.5;
+
+    gapEl.className = 'gap-value ' + (isCritical ? 'gap-closing' : isDrs ? 'gap-drs' : 'gap-normal');
+    gapDisp.className = 'gap-display' + (isCritical ? ' critical' : isDrs ? ' drs-range' : '');
+
+    // DRS zone
+    if (drsInd) {
+      drsInd.className = 'drs-zone-indicator' + (isDrs ? ' enabled' : '');
+      drsInd.innerHTML = isDrs
+        ? '<span>🟢</span><span>DRS ZONE ACTIVE</span>'
+        : '<span>📡</span><span>DRS Zone</span>';
+    }
+
+    // Trend
+    if (prevGap !== null && trendEl) {
+      const diff = absGap - Math.abs(prevGap);
+      if (diff < -0.05) {
+        trendEl.textContent = '▼ Closing';
+        trendEl.className = 'gap-trend closing';
+      } else if (diff > 0.05) {
+        trendEl.textContent = '▲ Opening';
+        trendEl.className = 'gap-trend opening';
+      } else {
+        trendEl.textContent = '● Stable';
+        trendEl.className = 'gap-trend';
+      }
+    }
+    prevGap = gap;
+
+    // Battle status badge
+    if (battle) {
+      if (isCritical) {
+        battle.textContent = '⚡ DRS ATTACK';
+        battle.style.background = 'rgba(232,0,45,0.2)';
+        battle.style.color = 'var(--f1-red)';
+      } else if (isDrs) {
+        battle.textContent = '🟢 DRS RANGE';
+        battle.style.background = 'rgba(0,230,118,0.15)';
+        battle.style.color = 'var(--accent-green)';
+      } else {
+        battle.textContent = 'MONITORING';
+        battle.style.background = 'rgba(74,90,106,0.2)';
+        battle.style.color = 'var(--text-muted)';
+      }
+    }
+  }
+
+  function updateLapCounter(lap) {
+    setText('currentLap', lap);
+    const pct = Math.min((lap / 52) * 100, 100);
+    const fill = document.getElementById('lapProgressFill');
+    if (fill) fill.style.width = `${pct}%`;
+    setText('lapProgressText', `${lap} / 52`);
+  }
+
+  // ═══════════════════════════════════
+  // CAR POSITION ON TRACK
+  // ═══════════════════════════════════
+  function moveCarOnTrack(id, gap, isVer) {
+    // Simple simulation: VER at ~60% of track, HAM slightly behind
+    const pts = TRACK_POINTS;
+    const total = pts.length - 1;
+
+    // VER at index ~22, HAM offset by gap (each 2s ≈ 1 point)
+    const verIdx = 22;
+    const gapPts = Math.min(Math.max(Math.round(Math.abs(gap) / 1.5), 1), 8);
+    const hamIdx = Math.max(0, verIdx - gapPts);
+
+    const idx = isVer ? verIdx : hamIdx;
+    const [cx, cy] = pts[Math.min(idx, pts.length - 1)];
+
+    const dotId   = `${id}CarDot`;
+    const labelId = `${id}CarLabel`;
+
+    const dot   = document.getElementById(dotId);
+    const label = document.getElementById(labelId);
+    if (dot) { dot.setAttribute('cx', cx); dot.setAttribute('cy', cy); }
+    if (label) { label.setAttribute('x', cx); label.setAttribute('y', cy + 3); }
+  }
+
+  // ═══════════════════════════════════
+  // TRIGGER PANEL
+  // ═══════════════════════════════════
+  function addTriggerItem(trigger) {
+    const list = document.getElementById('triggerList');
+    if (!list) return;
+
+    // Clear empty state
+    const empty = list.querySelector('.no-triggers');
+    if (empty) empty.remove();
+
+    const typeKey    = trigger.trigger.toLowerCase();
+    const typeLabels = {
+      drs_threat: 'DRS Threat',
+      undercut:   'Undercut',
+      pace_drop:  'Pace Drop',
+      box_window: 'Box Window',
+    };
+
+    const descriptions = {
+      drs_threat: `HAM within ${trigger.gap_s?.toFixed(2)}s of VER — DRS window OPEN`,
+      undercut:   `HAM pitting from ${trigger.gap_s?.toFixed(2)}s behind — Undercut bid`,
+      pace_drop:  `Pace degradation detected — ${trigger.extra?.delta_s?.toFixed(2) || '?'}s drop`,
+      box_window: `Pit window aligns — ${trigger.leading} should box now`,
+    };
+
+    const item = document.createElement('div');
+    item.className = `trigger-item ${typeKey}`;
+    item.innerHTML = `
+      <div class="trigger-top">
+        <div class="trigger-type-badge">${typeLabels[typeKey] || trigger.trigger}</div>
+        <div class="trigger-time">${fmtTime(new Date())}</div>
+      </div>
+      <div class="trigger-desc">${descriptions[typeKey] || ''}</div>
+      <div class="trigger-meta">
+        <div class="trigger-chip">LAP ${trigger.lap}</div>
+        <div class="trigger-chip">${trigger.track || 'Silverstone'}</div>
+        <div class="severity-badge severity-${trigger.severity}">${trigger.severity}</div>
+      </div>
+    `;
+
+    list.prepend(item);
+
+    // Update counter
+    setText('triggerCount', `${triggerCount} fired`);
+  }
+
+  // ═══════════════════════════════════
+  // AI INSIGHT (typing animation)
+  // ═══════════════════════════════════
+  function showInsight(triggerType, trigger, insightText) {
+    const empty  = document.getElementById('insightEmpty');
+    const card   = document.getElementById('insightCard');
+    const pill   = document.getElementById('insightTriggerPill');
+    const chips  = document.getElementById('insightChips');
+    const tsEl   = document.getElementById('insightTs');
+    const badge  = document.getElementById('aiBadge');
+
+    if (empty) empty.style.display = 'none';
+    if (card)  { card.className = 'insight-card visible'; }
+
+    // Trigger pill
+    const typeLabels = {
+      DRS_THREAT: 'DRS Threat',
+      UNDERCUT:   'Undercut',
+      PACE_DROP:  'Pace Drop',
+      BOX_WINDOW: 'Box Window',
+    };
+    if (pill) {
+      pill.textContent = typeLabels[triggerType] || triggerType;
+      // Color by type
+      const colors = {
+        DRS_THREAT: ['rgba(232,0,45,0.15)','var(--f1-red)','rgba(232,0,45,0.3)'],
+        UNDERCUT:   ['rgba(255,107,0,0.15)','var(--accent-orange)','rgba(255,107,0,0.3)'],
+        PACE_DROP:  ['rgba(255,214,0,0.12)','var(--accent-yellow)','rgba(255,214,0,0.3)'],
+        BOX_WINDOW: ['rgba(0,212,255,0.1)','var(--accent-cyan)','rgba(0,212,255,0.3)'],
+      };
+      const [bg, col, border] = colors[triggerType] || colors.DRS_THREAT;
+      pill.style.background   = bg;
+      pill.style.color        = col;
+      pill.style.borderColor  = border;
+    }
+
+    // Data chips
+    if (chips) {
+      chips.innerHTML = [
+        `LAP ${trigger.lap}`,
+        `GAP ${Math.abs(trigger.gap_s).toFixed(2)}s`,
+        trigger.chasing,
+        `vs ${trigger.leading}`,
+      ].map(t => `<div class="data-chip">${t}</div>`).join('');
+    }
+
+    // Timestamp
+    if (tsEl) tsEl.textContent = fmtTime(new Date());
+
+    // Badge
+    if (badge) {
+      badge.textContent = '⚡ LIVE INSIGHT';
+      badge.style.background = 'rgba(198,83,255,0.15)';
+      badge.style.color = 'var(--accent-purple)';
+    }
+
+    // Queue typing
+    typeQueue.push(insightText);
+    if (!isTyping) processTypeQueue();
+  }
+
+  function processTypeQueue() {
+    if (typeQueue.length === 0) { isTyping = false; return; }
+    isTyping = true;
+    const text = typeQueue.shift();
+    typeText(text, () => processTypeQueue());
+  }
+
+  function typeText(text, onDone) {
+    const el     = document.getElementById('insightText');
+    const cursor = document.getElementById('insightCursor');
+    if (!el) { onDone?.(); return; }
+
+    el.textContent = '';
+    if (cursor) cursor.style.display = 'inline-block';
+
+    let i = 0;
+    const speed = 18; // ms per character
+
+    const tick = () => {
+      if (i < text.length) {
+        el.textContent += text[i++];
+        setTimeout(tick, speed);
+      } else {
+        if (cursor) cursor.style.display = 'none';
+        onDone?.();
+      }
+    };
+    tick();
+  }
+
+  // ═══════════════════════════════════
+  // TELEMETRY LOG
+  // ═══════════════════════════════════
+  function appendLog(msg, type = 'telemetry') {
+    const log = document.getElementById('telemetryLog');
+    if (!log) return;
+
+    logCount++;
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+
+    const badgeMap = {
+      telemetry: 'TELEM',
+      trigger:   'TRIG',
+      insight:   'AI',
+      system:    'SYS',
+      connected: 'CONN',
+    };
+
+    entry.innerHTML = `
+      <div class="log-ts">${fmtTime(new Date())}</div>
+      <div class="log-badge ${type}">${badgeMap[type] || type.toUpperCase()}</div>
+      <div class="log-msg">${escHtml(msg)}</div>
+    `;
+
+    log.prepend(entry);
+
+    // Trim log
+    while (log.children.length > MAX_LOG) {
+      log.removeChild(log.lastChild);
+    }
+
+    setText('logCount', `${logCount} events`);
+  }
+
+  // ═══════════════════════════════════
+  // CONNECTION STATUS
+  // ═══════════════════════════════════
+  function setConnected(state) {
+    const dot    = document.getElementById('liveDot');
+    const status = document.getElementById('connStatus');
+    const icon   = document.getElementById('connIcon');
+    const text   = document.getElementById('connText');
+
+    if (dot) dot.className = `live-dot ${state ? '' : 'disconnected'}`;
+    if (status) status.className = `conn-status ${state ? 'connected' : 'error'}`;
+    if (icon) icon.textContent = state ? '●' : '✕';
+    if (text) text.textContent = state ? 'Live' : 'Disconnected';
+  }
+
+  function hideOverlay() {
+    const ov = document.getElementById('connectingOverlay');
+    if (ov) ov.classList.add('hidden');
+  }
+
+  function updateOverlayMsg(msg) {
+    const el = document.getElementById('connectingMsg');
+    if (el) el.textContent = msg;
+  }
+
+  // ═══════════════════════════════════
+  // HELPERS
+  // ═══════════════════════════════════
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  function formatLapTime(secs) {
+    if (!secs || secs <= 0) return '--:--.---';
+    const m = Math.floor(secs / 60);
+    const s = (secs % 60).toFixed(3).padStart(6, '0');
+    return `${m}:${s}`;
+  }
+
+  function fmtTime(d) {
+    return d.toTimeString().slice(0, 8);
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // ═══════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════
+  connect();
+</script>
+
+</body>
+</html>
